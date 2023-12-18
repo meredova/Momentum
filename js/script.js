@@ -229,6 +229,7 @@ window.addEventListener('load', () => {
 });
 
 function playAudio() {
+    console.log('Кнопка воспроизведения нажата');
   if (!isPlay) {
     isPlay = true;
     playBtn.classList.add('pause');
