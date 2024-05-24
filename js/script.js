@@ -135,9 +135,7 @@ function getCityLocalStorage() {
     const cityFromLS = localStorage.getItem('city');
     if (cityFromLS !== null) {
       city.value = cityFromLS;
-    } else {
-        city.value = 'Minsk';
-      }
+    } 
     getWeather()
 }
 window.addEventListener('load', getCityLocalStorage)
@@ -177,7 +175,7 @@ const changeQuoteBtn = document.querySelector('.change-quote')
 const icon = document.querySelector('.icon');
 
 function getQuotes() {
-    let num = getRandomNum(0, quotes.length)
+    let num = getRandomNum(0, (quotes.length - 1))
     quote.style.opacity = '0';
     author.style.opacity = '0';
     setTimeout(() => {
@@ -200,101 +198,73 @@ const playBtn = document.querySelector('.play');
 const playPrevBtn = document.querySelector('.play-prev');
 const playNextBtn = document.querySelector('.play-next');
 const playListContainer = document.querySelector('.play-list');
-const progressBar = document.querySelector('#progress-bar')
+const progressBar = document.querySelector('#progress-bar');
 let isPlay = false;
 let playNum = 0;
+let currentTime = 0;
 const audio = new Audio();
 
-function createPlaylist(sound) {
+const createPlaylist = sound => {
   const li = document.createElement('li');
   li.classList.add('play-item');
   li.textContent = sound.title;
   playListContainer.append(li);
-}
+};
 
-function updatePlaylistUI() {
-    const playItems = playListContainer.querySelectorAll('.play-item');
-    playItems.forEach((item, index) => {
-      if (index === playNum) {
-        item.classList.add('playing');
-      } else {
-        item.classList.remove('playing');
-      }
-    });
-}
+const updatePlaylistUI = () => {
+  playListContainer.querySelectorAll('.play-item').forEach((item, index) => {
+    item.classList.toggle('playing', index === playNum);
+  });
+};
 
-window.addEventListener('load', () => {
-  playList.forEach((sound) => createPlaylist(sound));
-  updatePlaylistUI()
-});
+const updateProgressValue = () => {
+  progressBar.max = audio.duration || 0;
+  progressBar.value = audio.currentTime;
+  document.querySelector('.currentTime').innerHTML = formatTime(Math.floor(audio.currentTime));
+  document.querySelector('.durationTime').innerHTML = formatTime(Math.floor(audio.duration)) || '0:00';
+};
 
-function playAudio() {
-    console.log('Кнопка воспроизведения нажата');
-  if (!isPlay) {
-    isPlay = true;
-    playBtn.classList.add('pause');
-    audio.src = playList[playNum].src;
-    audio.currentTime = 0;
-    audio.play()
+const formatTime = seconds => {
+  const min = Math.floor(seconds / 60);
+  const sec = `0${Math.floor(seconds % 60)}`.slice(-2);
+  return `${min}:${sec}`;
+};
+
+const loadAudio = () => {
+  audio.src = playList[playNum].src;
+  audio.currentTime = currentTime;
+  if (isPlay) audio.play();
+};
+
+const togglePlay = () => {
+  isPlay = !isPlay;
+  playBtn.classList.toggle('pause', isPlay);
+  if (isPlay) {
+    loadAudio();
   } else {
-    isPlay = false;
-    playBtn.classList.remove('pause');
+    currentTime = audio.currentTime;
     audio.pause();
   }
-  setInterval(updateProgressValue, 500);
-  updatePlaylistUI();
-  audio.addEventListener('timeupdate', updateProgressValue);
-}
-playBtn.addEventListener('click', playAudio);
-
-function playNext() {
-  playNum++;
-  if (playNum >= playList.length) {
-    playNum = 0;
-  }
-  playAudio();
-}
-
-function playPrev() {
-  playNum--;
-  if (playNum < 0) {
-    playNum = playList.length - 1;
-  }
-  playAudio();
-}
-
-playNextBtn.addEventListener('click', playNext);
-playPrevBtn.addEventListener('click', playPrev);
-
-function updateProgressValue() {
-    progressBar.max = audio.duration;
-    progressBar.value = audio.currentTime;
-    document.querySelector('.currentTime').innerHTML = (formatTime(Math.floor(audio.currentTime)));
-    if (document.querySelector('.durationTime').innerHTML === "NaN:NaN") {
-        document.querySelector('.durationTime').innerHTML = "0:00";
-    } else {
-        document.querySelector('.durationTime').innerHTML = (formatTime(Math.floor(audio.duration)));
-    }
 };
 
-progressBar.addEventListener('input', () => {
-    audio.currentTime = progressBar.value;
+const changeTrack = direction => {
+  playNum = (playNum + direction + playList.length) % playList.length;
+  currentTime = 0;
+  updatePlaylistUI();
+  loadAudio();
+};
+
+window.addEventListener('load', () => {
+  playList.forEach(createPlaylist);
+  updatePlaylistUI();
 });
 
-function formatTime(seconds) {
-    let min = Math.floor((seconds / 60));
-    let sec = Math.floor(seconds - (min * 60));
-    if (sec < 10){ 
-        sec  = `0${sec}`;
-    };
-    return `${min}:${sec}`;
-};
+playBtn.addEventListener('click', togglePlay);
+playNextBtn.addEventListener('click', () => changeTrack(1));
+playPrevBtn.addEventListener('click', () => changeTrack(-1));
+progressBar.addEventListener('input', () => {
+  audio.currentTime = progressBar.value;
+});
 
-
-// --------------------------->Change Language<---------------------------
-
-// const greetingTranslation = {
-//     ru:
-//     en:
-// }
-
+audio.addEventListener('timeupdate', updateProgressValue);
+audio.addEventListener('loadedmetadata', updateProgressValue);
